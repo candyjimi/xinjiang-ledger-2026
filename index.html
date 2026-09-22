@@ -1,0 +1,901 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>钱包去哪儿 - 新疆八日版</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+<style>
+  :root {
+    /* 莫兰迪色系：雾青 + 暖米灰（对应雪山 / 藏寨 / 火山 / 温泉）*/
+    --sky-50:#f8f8f6;
+    --sky-100:#eeefec;
+    --sky-200:#e2e5e2;
+    --sky-300:#c9d0cd;
+    --sky-400:#adb8b5;
+    --sky-500:#8f9e9b;
+    --sky-600:#778784;
+    --sky-700:#61716f;
+    --clay:#b9a08c;
+    --gray-50:#faf9f7;
+    --gray-100:#f2f1ee;
+    --gray-200:#e5e3df;
+    --gray-400:#a8a49e;
+    --gray-500:#7a7671;
+    --gray-700:#4a4744;
+    --gray-900:#33302d;
+  }
+  html, body { font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif; }
+  body {
+    background: linear-gradient(180deg,#fbfaf8 0%, #f4f3f0 100%);
+    min-height: 100vh;
+    color: var(--gray-700);
+  }
+  .wrap { max-width: 430px; margin: 0 auto; padding: 10px 12px 20px; }
+
+  .frame {
+    position: relative;
+    background: #fff;
+    border: 1px solid var(--gray-200);
+    border-radius: 14px;
+    padding: 12px;
+    margin-top: 12px;
+    box-shadow: none;
+  }
+  .frame-title {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--gray-400);
+    letter-spacing: 1px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .frame-title::before {
+    content:'';
+    width: 3px; height: 11px;
+    border-radius: 2px;
+    background: var(--sky-400);
+  }
+
+  .mini-stat {
+    background: var(--gray-50);
+    border-radius: 10px;
+    padding: 8px 6px;
+    text-align: center;
+    border: 1px solid var(--gray-100);
+  }
+  .mini-stat .lbl { font-size: 10px; color: var(--gray-500); }
+  .mini-stat .val { font-size: 15px; font-weight: 700; margin-top: 2px; line-height:1.1; color: var(--gray-900); }
+  .mini-stat.sky .val { color: var(--sky-600); }
+
+  /* 概览主视觉：已花费 */
+  .spent-hero {
+    background: linear-gradient(135deg, #61716f 0%, #99a5a0 100%);
+    border-radius: 14px;
+    padding: 16px 14px 14px;
+    color: #fff;
+    box-shadow: 0 6px 16px rgba(97,113,111,.28);
+    position: relative;
+    overflow: hidden;
+    text-align: center;
+  }
+  .spent-hero::after { display: none; }
+  .spent-hero .hero-lbl { font-size: 11px; opacity: .9; letter-spacing: 1px; }
+  .spent-hero .hero-val {
+    font-size: 36px; font-weight: 800; line-height: 1.05;
+    margin-top: 2px; letter-spacing: -.5px;
+  }
+  .spent-hero .hero-val .cur { font-size: 20px; font-weight: 700; margin-right: 1px; opacity:.9; }
+  .spent-hero .hero-sub { font-size: 11px; opacity: .92; margin-top: 8px; }
+  .hero-bar-bg { height: 5px; border-radius: 999px; background: rgba(255,255,255,.28); overflow: hidden; margin-top: 10px; }
+  .hero-bar { height: 100%; background: #fff; border-radius: 999px; transition: width .5s ease; }
+
+  .cat-btn {
+    padding: 6px 2px;
+    border-radius: 8px;
+    background: var(--gray-100);
+    text-align: center;
+    font-size: 9px;
+    color: var(--gray-500);
+    transition: all .2s;
+    line-height: 1.1;
+  }
+  .cat-btn .ic { font-size: 15px; display:block; margin-bottom: 1px; filter: grayscale(1) opacity(.85); }
+  .cat-btn.active {
+    background: var(--sky-500);
+    color: #fff;
+    box-shadow: 0 2px 6px rgba(143,165,180,.35);
+  }
+  .cat-btn.active .ic { filter: none; }
+
+  .field { background: var(--gray-50); border:1px solid var(--gray-200); border-radius:10px; padding:7px 10px; font-size:12px; width:100%; outline:none; color: var(--gray-700); }
+  .field:focus { border-color: var(--sky-400); background:#fff; }
+
+  .drawer-toggle { font-size:11px; color: var(--sky-600); cursor:pointer; user-select:none; }
+  .hidden-init { display: none; }
+
+  .ceremony {
+    background: linear-gradient(160deg, #9aa8a3 0%, #c7ccc5 100%);
+    color:#fff;
+    border-radius: 14px;
+    padding: 14px 12px;
+    position: relative;
+    overflow: hidden;
+    min-height: 320px;
+  }
+  .ceremony.has-bg { background: none; }
+  .ceremony-bg-img {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    object-fit: cover;
+    z-index: 0;
+  }
+  .ceremony-mask {
+    position: absolute; inset: 0;
+    background: linear-gradient(180deg, rgba(50,55,52,.2) 0%, rgba(50,55,52,.55) 100%);
+    z-index: 1;
+  }
+  .ceremony > *:not(.ceremony-bg-img):not(.ceremony-mask) { position: relative; z-index: 2; }
+  .ceremony::before {
+    content:''; position:absolute; inset:0;
+    background:
+      radial-gradient(circle at 20% 20%, rgba(255,255,255,.35), transparent 40%),
+      radial-gradient(circle at 80% 80%, rgba(255,255,255,.25), transparent 40%);
+    pointer-events:none;
+    z-index: 0;
+  }
+  .ceremony.has-bg::before { display: none; }
+  .upload-btn {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 4px 10px; border-radius: 999px;
+    background: rgba(255,255,255,.25); color: #fff;
+    font-size: 10px; cursor: pointer;
+    backdrop-filter: blur(4px);
+  }
+  .upload-btn:hover { background: rgba(255,255,255,.4); }
+  .fw { display: none; }
+  @keyframes burst { 0%{transform:scale(0);opacity:1;} 100%{transform:scale(10);opacity:0;} }
+
+  input[type=number]::-webkit-inner-spin-button,
+  input[type=number]::-webkit-outer-spin-button {-webkit-appearance:none; margin:0;}
+
+  .day-item { max-height: 130px; overflow-y: auto; }
+  .day-item::-webkit-scrollbar { width: 3px; }
+  .day-item::-webkit-scrollbar-thumb { background: var(--sky-200); border-radius: 3px; }
+
+  .legend-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+
+  /* 行程条 */
+  .day-chip {
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 5px 2px;
+    border-radius: 10px;
+    background: var(--gray-100);
+    border: 1px solid var(--gray-200);
+    font-size: 9.5px;
+    line-height: 1.25;
+    color: var(--gray-500);
+    text-align: center;
+    cursor: pointer;
+    transition: all .2s;
+    white-space: nowrap;
+  }
+  .day-chip b { display:block; font-size: 11px; color: var(--gray-700); font-weight: 700; }
+  .day-chip .rt { display:block; font-size: 9px; margin-top: 1px; white-space: nowrap; }
+  .day-chip.active {
+    background: var(--sky-500);
+    border-color: var(--sky-500);
+    color: #fff;
+  }
+  .day-chip.active b { color: #fff; }
+  .day-scroll { display:flex; gap:4px; overflow-x:auto; padding-bottom: 4px; }
+  .day-scroll::-webkit-scrollbar { height: 3px; }
+  .day-scroll::-webkit-scrollbar-thumb { background: var(--sky-300); border-radius: 3px; }
+
+  /* 页面标题 */
+  .page-head {
+    position: relative;
+    text-align: center;
+    padding: 6px 4px 12px;
+    border-bottom: 1px solid var(--gray-200);
+    margin-bottom: 2px;
+  }
+  .page-head .one-line {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--gray-900);
+    line-height: 1.4;
+    letter-spacing: .2px;
+    padding: 4px 72px 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .page-head .one-line .dim {
+    font-weight: 500;
+    font-size: 12px;
+    color: var(--gray-500);
+  }
+  /* 标题右侧剩余预算 */
+  .remain-pill {
+    position: absolute;
+    right: 4px;
+    top: 4px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    line-height: 1.15;
+    padding: 3px 8px;
+    border-radius: 8px;
+    background: var(--sky-100);
+    border: 1px solid var(--sky-200);
+  }
+  .remain-pill .lbl {
+    font-size: 9px;
+    color: var(--gray-500);
+    letter-spacing: .5px;
+  }
+  .remain-pill .val {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--sky-700);
+  }
+  .remain-pill.over .val { color: #b98080; }
+  /* 窄屏：压缩标题字号，确保信息不被截断 */
+  @media (max-width: 390px) {
+    .page-head .one-line { font-size: 13.5px; padding: 4px 66px 0 10px; }
+    .page-head .one-line .dim { font-size: 11px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- 顶部标题 -->
+  <header class="page-head">
+    <div class="one-line" id="headLine">钱包去哪儿📓 <span class="dim">- 新疆八日版🐏</span></div>
+    <div class="remain-pill" id="remainPill">
+      <span class="lbl">剩余预算</span>
+      <span class="val">¥<span id="v-remain">10,000</span></span>
+    </div>
+  </header>
+
+  <!-- 概览 -->
+  <section class="frame">
+    <div class="frame-title">概览</div>
+
+    <div class="spent-hero">
+      <div class="hero-lbl">已花费</div>
+      <div class="hero-val"><span class="cur">¥</span><span id="v-spent">0</span></div>
+      <div class="hero-bar-bg">
+        <div id="progressBar" class="hero-bar" style="width:0%"></div>
+      </div>
+      <div class="hero-sub">
+        预算 ¥<span id="v-budget">10000</span>
+        · 剩余 ¥<span id="v-remain2">10000</span>
+        · 人均 ¥<span id="v-avg">0</span>
+      </div>
+    </div>
+
+    <div class="mt-2 text-right">
+      <span class="drawer-toggle" onclick="toggleSetting()">编辑预算 / 日期</span>
+    </div>
+    <div id="settingPanel" class="hidden-init mt-2 space-y-2">
+      <div class="grid grid-cols-2 gap-2">
+        <div><label class="text-[10px]" style="color: var(--gray-500)">人数</label>
+          <input id="people" type="number" min="1" value="2" class="field mt-0.5"/></div>
+        <div><label class="text-[10px]" style="color: var(--gray-500)">目的地</label>
+          <input id="destination" type="text" placeholder="例如 川西环线" class="field mt-0.5"/></div>
+      </div>
+      <div class="grid grid-cols-3 gap-2">
+        <div><label class="text-[10px]" style="color: var(--gray-500)">总预算</label>
+          <input id="budget" type="number" min="0" value="10000" class="field mt-0.5"/></div>
+        <div><label class="text-[10px]" style="color: var(--gray-500)">出发</label>
+          <input id="startDate" type="date" class="field mt-0.5"/></div>
+        <div><label class="text-[10px]" style="color: var(--gray-500)">结束</label>
+          <input id="endDate" type="date" class="field mt-0.5"/></div>
+      </div>
+      <div class="hidden-init"><span id="v-people"></span><span id="v-percent"></span></div>
+    </div>
+  </section>
+
+  <!-- 记一笔 -->
+  <section class="frame">
+    <div class="frame-title">记一笔</div>
+
+    <div id="dayScroll" class="day-scroll mb-1"></div>
+    <div id="dayRouteTip" class="text-[10px] mb-2 px-0.5" style="color: var(--gray-400)"></div>
+
+    <div class="grid grid-cols-2 gap-2">
+      <input id="e-date" type="date" class="field"/>
+      <input id="e-note" type="text" placeholder="备注（选填）" class="field"/>
+    </div>
+
+    <div id="catBtns" class="grid grid-cols-8 gap-1 mt-2"></div>
+
+    <div class="mt-2 flex gap-2">
+      <input id="e-amount" type="number" min="0" step="0.01" placeholder="¥ 金额" class="field flex-1"/>
+      <button id="btnAdd" class="px-5 py-1.5 rounded-lg text-white text-xs font-medium whitespace-nowrap" style="background: var(--sky-500);">
+        记账
+      </button>
+    </div>
+
+    <div class="mt-3 pt-2" style="border-top:1px solid var(--gray-100)">
+      <div class="flex justify-between items-center">
+        <span class="text-[11px]" style="color: var(--gray-400)">分天明细</span>
+        <span class="drawer-toggle" onclick="toggleDays()"><span id="dayToggleLabel">展开</span></span>
+      </div>
+      <div id="dayList" class="hidden-init space-y-2 day-item mt-2"></div>
+    </div>
+  </section>
+
+  <!-- 统计 -->
+  <section class="frame">
+    <div class="frame-title">花费构成</div>
+
+    <div class="grid grid-cols-5 gap-2 items-center">
+      <div class="col-span-2">
+        <div id="chartGroup" style="height:130px"></div>
+      </div>
+      <div class="col-span-3">
+        <div id="groupList" class="space-y-1"></div>
+      </div>
+    </div>
+
+    <div class="mt-1 text-right">
+      <span class="drawer-toggle" onclick="toggleDayChart()"><span id="dayChartLabel">每日趋势</span></span>
+    </div>
+    <div id="chartDayWrap" class="hidden-init mt-1">
+      <div id="chartDay" style="height:150px"></div>
+    </div>
+  </section>
+
+  <!-- 总结 -->
+  <section class="frame">
+    <div class="frame-title">旅行总结</div>
+
+    <div id="ceremony" class="ceremony">
+      <img id="ceremonyBgImg" class="ceremony-bg-img" style="display:none" alt=""/>
+      <div id="ceremonyMask" class="ceremony-mask" style="display:none"></div>
+
+      <div class="flex justify-end mb-1">
+        <label class="upload-btn" for="bgUpload">上传底图</label>
+        <input id="bgUpload" type="file" accept="image/*" class="hidden-init"/>
+        <button id="clearBgBtn" class="upload-btn ml-2" style="display:none">清除</button>
+      </div>
+
+      <div class="text-center">
+        <div class="text-base font-bold" style="text-shadow:0 2px 6px rgba(0,0,0,.25)">旅行圆满结束</div>
+        <div id="s-subtitle" class="text-[10px] text-white/90 mt-1" style="text-shadow:0 1px 3px rgba(0,0,0,.3)">一段值得纪念的旅程</div>
+
+        <div class="mt-4">
+          <div class="text-[10px] text-white/80">总花费</div>
+          <div class="text-3xl font-bold text-white" style="text-shadow:0 2px 8px rgba(0,0,0,.28)">
+            ¥<span id="s-total">0</span>
+          </div>
+          <div class="text-[10px] text-white/85 mt-1" style="text-shadow:0 1px 3px rgba(0,0,0,.3)">
+            人均 ¥<span id="s-avg">0</span>
+            · 日均 ¥<span id="s-daily">0</span>
+            · <span id="s-days">0</span> 天
+            · <span id="s-count">0</span> 笔
+          </div>
+        </div>
+
+        <div id="s-breakdown" class="mt-4 grid grid-cols-5 gap-1"></div>
+        <div id="s-highlight" class="mt-3 text-[10px] text-white leading-snug px-1" style="text-shadow:0 1px 3px rgba(0,0,0,.35)"></div>
+
+        <button onclick="window.print()" class="mt-3 px-4 py-1 bg-white/25 hover:bg-white/40 rounded-full text-[10px]">
+          保存图片
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <div class="text-center mt-3 space-y-1">
+    <div class="text-[9px]" id="saveTip" style="color: var(--gray-400)">数据自动保存在本机浏览器</div>
+    <div class="text-[9px]" style="color: var(--gray-400)">
+      <span class="drawer-toggle" onclick="exportData()">导出备份</span>
+      <span class="mx-1">/</span>
+      <label class="drawer-toggle" for="importFile">导入备份</label>
+      <input id="importFile" type="file" accept="application/json,.json" class="hidden-init"/>
+      <span class="mx-1">/</span>
+      <span class="drawer-toggle" onclick="clearData()">清空数据</span>
+    </div>
+  </div>
+</div>
+
+<script>
+const CATS = [
+  { key: 'car',    name: '租车',   icon: '🚗', group: '自驾' },
+  { key: 'fuel',   name: '油费',   icon: '⛽', group: '自驾' },
+  { key: 'toll',   name: '过路',   icon: '🛣️', group: '自驾' },
+  { key: 'flight', name: '机票',   icon: '✈️', group: '机票' },
+  { key: 'food',   name: '餐饮',   icon: '🍜', group: '餐饮' },
+  { key: 'hotel',  name: '住宿',   icon: '🏨', group: '住宿' },
+  { key: 'ticket', name: '门票',   icon: '🎫', group: '其他' },
+  { key: 'shop',   name: '购物',   icon: '🛍️', group: '其他' },
+];
+// 五大聚合类使用天蓝色由深到浅的梯度
+const GROUP_COLORS = {
+  '机票':'#8a9aa0',
+  '自驾':'#9aa89f',
+  '住宿':'#b9a08c',
+  '餐饮':'#c4a9a0',
+  '其他':'#d5d1c7',
+};
+const GROUP_ORDER = ['机票','自驾','住宿','餐饮','其他'];
+
+// 已导入行程：2026 新疆北疆环线 · 八日自驾（朋友行程）
+const TRIP_VERSION = '2026-xinjiang-v1';
+const TRIP = {
+  name: '北疆环线 · 八日自驾',
+  start: '2026-09-26',
+  end: '2026-10-03',
+  days: [
+    { d:'2026-09-26', n:'D1', t:'石家庄✈乌鲁木齐', s:'飞抵乌鲁木齐 · 取车整备 · 夜宿市区' },
+    { d:'2026-09-27', n:'D2', t:'乌鲁木齐→呼伦湖→阿勒泰', s:'长途转场北上 · 湖畔停留 · 夜宿阿勒泰' },
+    { d:'2026-09-28', n:'D3', t:'阿勒泰→阿禾公路→贾登峪', s:'阿禾公路风景道 · 白桦与河谷 · 夜宿贾登峪' },
+    { d:'2026-09-29', n:'D4', t:'贾登峪→喀纳斯→布尔津', s:'喀纳斯核心景区一日 · 夜宿布尔津' },
+    { d:'2026-09-30', n:'D5', t:'布尔津→魔鬼城→奎屯', s:'乌尔禾雅丹地貌 · 长途南下 · 夜宿奎屯' },
+    { d:'2026-10-01', n:'D6', t:'奎屯→赛里木湖', s:'果子沟大桥 · 环湖日落 · 宿赛里木湖' },
+    { d:'2026-10-02', n:'D7', t:'赛里木湖→夏塔', s:'翻越山口转场 · 夏塔草原河谷 · 夜宿夏塔' },
+    { d:'2026-10-03', n:'D8', t:'夏塔→昭苏玉湖→伊犁✈石家庄', s:'昭苏玉湖打卡 · 伊宁还车 · 当日返程' },
+  ]
+};
+
+const state = {
+  people: 2, budget: 10000, destination: '',
+  startDate: '', endDate: '',
+  currentCat: 'food',
+  records: [],
+  ceremonyBg: '',
+};
+
+const STORE_KEY = 'travel_ledger_xinjiang';
+let saveTimer = null;
+
+function storageOK() {
+  try {
+    localStorage.setItem('__t', '1');
+    localStorage.removeItem('__t');
+    return true;
+  } catch(e) { return false; }
+}
+
+function setSaveTip(text, warn) {
+  const el = document.getElementById('saveTip');
+  if (!el) return;
+  el.textContent = text;
+  el.style.color = warn ? '#b98080' : 'var(--gray-400)';
+}
+
+function save() {
+  try {
+    state.savedAt = Date.now();
+    localStorage.setItem(STORE_KEY, JSON.stringify(state));
+    const t = new Date(state.savedAt);
+    const hh = String(t.getHours()).padStart(2,'0');
+    const mm = String(t.getMinutes()).padStart(2,'0');
+    setSaveTip(`已保存到本机 · ${hh}:${mm}`);
+    return true;
+  } catch(e) {
+    // 容量不足时先舍弃底图，优先保住账目
+    if (state.ceremonyBg) {
+      state.ceremonyBg = '';
+      try {
+        localStorage.setItem(STORE_KEY, JSON.stringify(state));
+        applyCeremonyBg();
+        setSaveTip('底图过大已移除，账目已保存', true);
+        return true;
+      } catch(e2) {}
+    }
+    setSaveTip('保存失败，请导出备份', true);
+    return false;
+  }
+}
+
+// 频繁输入时防抖写入
+function saveSoon() {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(save, 300);
+}
+
+function load() {
+  try {
+    const raw = localStorage.getItem(STORE_KEY);
+    if (!raw) return;
+    const s = JSON.parse(raw);
+    if (s && typeof s === 'object') {
+      Object.assign(state, s);
+      if (!Array.isArray(state.records)) state.records = [];
+    }
+  } catch(e) {
+    setSaveTip('本地数据读取异常，已重置', true);
+  }
+}
+
+// 导出 / 导入 备份
+function exportData() {
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `travel-ledger-${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+function importData(file) {
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const s = JSON.parse(reader.result);
+      if (!s || typeof s !== 'object') throw 0;
+      Object.assign(state, s);
+      if (!Array.isArray(state.records)) state.records = [];
+      save();
+      applyCeremonyBg();
+      bindHeaderValues();
+      renderAll();
+      renderDayScroll();
+      setSaveTip('备份已导入');
+    } catch(e) {
+      alert('文件格式不对，请选择本工具导出的 JSON');
+    }
+  };
+  reader.readAsText(file);
+}
+function clearData() {
+  if (!confirm('确认清空本机所有记账数据？此操作不可恢复。')) return;
+  localStorage.removeItem(STORE_KEY);
+  location.reload();
+}
+
+function toggleSetting() {
+  const el = document.getElementById('settingPanel');
+  el.style.display = el.style.display === 'block' ? 'none' : 'block';
+}
+function toggleDays() {
+  const el = document.getElementById('dayList');
+  const lbl = document.getElementById('dayToggleLabel');
+  const open = el.style.display !== 'block';
+  el.style.display = open ? 'block' : 'none';
+  lbl.textContent = open ? '收起 ▴' : '展开 ▾';
+}
+function toggleDayChart() {
+  const el = document.getElementById('chartDayWrap');
+  const lbl = document.getElementById('dayChartLabel');
+  const open = el.style.display !== 'block';
+  el.style.display = open ? 'block' : 'none';
+  lbl.textContent = open ? '收起趋势 ▴' : '每日趋势 ▾';
+  if (open && chartDay) chartDay.resize();
+}
+
+const catBtns = document.getElementById('catBtns');
+CATS.forEach(c => {
+  const b = document.createElement('button');
+  b.className = 'cat-btn';
+  b.innerHTML = `<span class="ic">${c.icon}</span>${c.name}`;
+  b.dataset.cat = c.key;
+  b.addEventListener('click', () => {
+    state.currentCat = c.key;
+    document.querySelectorAll('.cat-btn').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    saveSoon();
+  });
+  catBtns.appendChild(b);
+});
+
+function bindHeaderValues() {
+  ['people','budget','destination','startDate','endDate'].forEach(k => {
+    const el = document.getElementById(k);
+    if (el && state[k] !== undefined && state[k] !== '') el.value = state[k];
+  });
+}
+
+function bindHeader() {
+  bindHeaderValues();
+  ['people','budget','destination','startDate','endDate'].forEach(k => {
+    const el = document.getElementById(k);
+    if (!el) return;
+    el.addEventListener('input', () => {
+      state[k] = (k === 'people' || k === 'budget') ? Number(el.value) || 0 : el.value;
+      saveSoon(); renderAll();
+    });
+  });
+}
+
+function renderOverview() {
+  document.getElementById('v-people').textContent = state.people || 0;
+  document.getElementById('v-budget').textContent = (state.budget || 0).toLocaleString();
+  const spent = state.records.reduce((s,r) => s + Number(r.amount), 0);
+  document.getElementById('v-spent').textContent = spent.toLocaleString();
+  const remain = (state.budget || 0) - spent;
+  document.getElementById('v-remain').textContent = remain.toLocaleString();
+  document.getElementById('v-remain2').textContent = remain.toLocaleString();
+  document.getElementById('remainPill').classList.toggle('over', remain < 0);
+  const pct = state.budget > 0 ? Math.min(100, Math.round(spent / state.budget * 100)) : 0;
+  document.getElementById('v-percent').textContent = pct;
+  document.getElementById('progressBar').style.width = pct + '%';
+  document.getElementById('v-avg').textContent = state.people ? (spent/state.people).toFixed(0) : '0';
+  // 标题：固定文案
+  document.getElementById('headLine').innerHTML =
+    '钱包去哪儿📓 <span class="dim">- 新疆八日版🐏</span>';
+}
+
+document.getElementById('btnAdd').addEventListener('click', () => {
+  const date = document.getElementById('e-date').value;
+  const amount = Number(document.getElementById('e-amount').value);
+  const note = document.getElementById('e-note').value.trim();
+  if (!date) { alert('请选择日期'); return; }
+  if (!amount || amount <= 0) { alert('请输入金额'); return; }
+  const cat = CATS.find(c => c.key === state.currentCat);
+  state.records.push({ id: Date.now(), date, amount, cat: cat.key, catName: cat.name, group: cat.group, note });
+  save();
+  document.getElementById('e-amount').value = '';
+  document.getElementById('e-note').value = '';
+  renderAll();
+});
+
+function renderDayList() {
+  const list = document.getElementById('dayList');
+  if (!state.records.length) {
+    list.innerHTML = '<div class="text-[11px] text-center py-2" style="color: var(--gray-400)">还没有记录～</div>';
+    return;
+  }
+  const byDay = {};
+  state.records.forEach(r => { (byDay[r.date] = byDay[r.date] || []).push(r); });
+  const days = Object.keys(byDay).sort().reverse();
+  list.innerHTML = days.map(d => {
+    const items = byDay[d];
+    const total = items.reduce((s,r)=>s+r.amount,0);
+    const trip = TRIP.days.find(x => x.d === d);
+    return `
+      <div class="rounded-lg p-2 bg-white" style="border:1px solid var(--gray-100)">
+        <div class="flex justify-between items-center mb-1">
+          <div class="text-[11px] font-medium" style="color: var(--gray-700)">
+            ${d.slice(5).replace('-','.')}${trip ? ` <span style="color: var(--sky-600)">${trip.n} ${trip.t}</span>` : ''}
+          </div>
+          <div class="text-[11px] font-semibold" style="color: var(--sky-600)">¥${total.toFixed(0)}</div>
+        </div>
+        <div class="space-y-0.5">
+          ${items.map(r => {
+            const c = CATS.find(x=>x.key===r.cat);
+            return `<div class="flex justify-between text-[11px] items-center rounded px-2 py-1" style="background: var(--gray-50)">
+              <div class="truncate" style="color: var(--gray-700)">${r.catName}${r.note?` <span style="color: var(--gray-400)">· ${r.note}</span>`:''}</div>
+              <div class="flex items-center gap-2 shrink-0">
+                <span>¥${r.amount.toFixed(0)}</span>
+                <button data-id="${r.id}" class="del-btn" style="color: var(--gray-400)">✕</button>
+              </div>
+            </div>`;
+          }).join('')}
+        </div>
+      </div>`;
+  }).join('');
+  document.querySelectorAll('.del-btn').forEach(b => {
+    b.addEventListener('click', () => {
+      const id = Number(b.dataset.id);
+      state.records = state.records.filter(r => r.id !== id);
+      save(); renderAll();
+    });
+  });
+}
+
+let chartG, chartDay;
+function renderStats() {
+  const groupSum = {}, daySum = {};
+  state.records.forEach(r => {
+    groupSum[r.group] = (groupSum[r.group] || 0) + r.amount;
+    daySum[r.date] = (daySum[r.date] || 0) + r.amount;
+  });
+  const hasData = state.records.length > 0;
+
+  chartG = chartG || echarts.init(document.getElementById('chartGroup'));
+  chartDay = chartDay || echarts.init(document.getElementById('chartDay'));
+
+  chartG.setOption({
+    tooltip: { trigger:'item', formatter:'{b}: ¥{c} ({d}%)' },
+    series: [{
+      type:'pie', radius:['50%','78%'], center:['50%','50%'],
+      data: hasData
+        ? GROUP_ORDER.filter(k => groupSum[k])
+            .map(k => ({ name:k, value:+groupSum[k].toFixed(2), itemStyle:{ color: GROUP_COLORS[k] } }))
+        : [{ name:'暂无', value:1, itemStyle:{ color:'#e5e7eb' } }],
+      label: { show:false },
+      labelLine: { show:false },
+      emphasis:{ label:{ show:false } }
+    }]
+  }, true);
+
+  const total = Object.values(groupSum).reduce((s,v)=>s+v,0);
+  const listEl = document.getElementById('groupList');
+  listEl.innerHTML = GROUP_ORDER.map(k => {
+    const v = groupSum[k] || 0;
+    const pct = total ? (v/total*100) : 0;
+    return `
+      <div class="flex justify-between items-center text-[11px] rounded-md px-2 py-1" style="background: var(--gray-50)">
+        <span class="flex items-center" style="color: var(--gray-700)">
+          <span class="legend-dot" style="background:${GROUP_COLORS[k]}"></span>${k}
+        </span>
+        <span style="color: var(--gray-700)">
+          <span class="font-semibold">¥${v.toFixed(0)}</span>
+          <span class="ml-1" style="color: var(--gray-400)">${pct.toFixed(0)}%</span>
+        </span>
+      </div>`;
+  }).join('');
+
+  const days = Object.keys(daySum).sort();
+  chartDay.setOption({
+    tooltip: { trigger:'axis', formatter: p => `${p[0].name}<br/>¥${p[0].value}` },
+    grid: { left: 34, right: 8, top: 8, bottom: 20 },
+    xAxis: { type:'category', data: days, axisLabel:{ fontSize:9, color: '#6b7280' } },
+    yAxis: { type:'value', axisLabel:{ fontSize:9, color: '#6b7280' } },
+    series: [{
+      type:'bar', data: days.map(d=>+daySum[d].toFixed(2)),
+      itemStyle:{ color: new echarts.graphic.LinearGradient(0,0,0,1,[
+        {offset:0,color:'#c9d0cd'},{offset:1,color:'#8f9e9b'}]) },
+      barMaxWidth: 22
+    }]
+  }, true);
+}
+
+function renderSummary() {
+  const total = state.records.reduce((s,r)=>s+r.amount,0);
+  document.getElementById('s-count').textContent = state.records.length;
+  document.getElementById('s-total').textContent = total.toLocaleString(undefined,{maximumFractionDigits:0});
+
+  const dates = state.records.map(r=>r.date).sort();
+  let days = 0;
+  if (state.startDate && state.endDate) {
+    days = Math.max(1, Math.round((new Date(state.endDate)-new Date(state.startDate))/86400000)+1);
+  } else if (dates.length) {
+    days = [...new Set(dates)].length;
+  }
+  document.getElementById('s-days').textContent = days || 0;
+  document.getElementById('s-avg').textContent = state.people ? (total/state.people).toFixed(0) : '0';
+  document.getElementById('s-daily').textContent = days ? (total/days).toFixed(0) : '0';
+  document.getElementById('s-subtitle').textContent = state.destination
+    ? `${state.destination}${state.startDate ? ' · '+state.startDate : ''}${state.endDate ? ' → '+state.endDate : ''}`
+    : '一段值得纪念的旅程';
+
+  const groupSum = {};
+  state.records.forEach(r => groupSum[r.group] = (groupSum[r.group]||0)+r.amount);
+  const total2 = Object.values(groupSum).reduce((s,v)=>s+v,0) || 1;
+  document.getElementById('s-breakdown').innerHTML = GROUP_ORDER.map(k => {
+    const v = groupSum[k] || 0;
+    return `<div class="bg-white/15 rounded-md py-1 backdrop-blur">
+      <div class="text-[9px] text-white/80">${k}</div>
+      <div class="text-[11px] font-bold text-white">¥${v.toFixed(0)}</div>
+    </div>`;
+  }).join('');
+
+  let top = Object.entries(groupSum).sort((a,b)=>b[1]-a[1])[0];
+  document.getElementById('s-highlight').innerHTML = top
+    ? `其中 <span class="font-semibold text-white">${top[0]}</span> 最多，占比 ${(top[1]/total2*100).toFixed(0)}%`
+    : '期待你的第一次出发';
+}
+
+function renderAll() {
+  renderOverview();
+  renderDayList();
+  renderStats();
+  renderSummary();
+}
+
+// 总结底图上传
+function applyCeremonyBg() {
+  const box = document.getElementById('ceremony');
+  const img = document.getElementById('ceremonyBgImg');
+  const mask = document.getElementById('ceremonyMask');
+  const clr = document.getElementById('clearBgBtn');
+  if (state.ceremonyBg) {
+    img.src = state.ceremonyBg;
+    img.style.display = 'block';
+    mask.style.display = 'block';
+    box.classList.add('has-bg');
+    clr.style.display = 'inline-flex';
+  } else {
+    img.removeAttribute('src');
+    img.style.display = 'none';
+    mask.style.display = 'none';
+    box.classList.remove('has-bg');
+    clr.style.display = 'none';
+  }
+}
+document.getElementById('bgUpload').addEventListener('change', (e) => {
+  const f = e.target.files && e.target.files[0];
+  if (!f) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    // 压缩，避免 localStorage 超限
+    const im = new Image();
+    im.onload = () => {
+      const c = document.createElement('canvas');
+      const maxW = 1200;
+      const scale = Math.min(1, maxW / im.width);
+      c.width = im.width * scale; c.height = im.height * scale;
+      c.getContext('2d').drawImage(im, 0, 0, c.width, c.height);
+      state.ceremonyBg = c.toDataURL('image/jpeg', 0.85);
+      try { save(); } catch(err) { alert('图片过大无法保存到本地'); }
+      applyCeremonyBg();
+    };
+    im.src = reader.result;
+  };
+  reader.readAsDataURL(f);
+  e.target.value = '';
+});
+document.getElementById('clearBgBtn').addEventListener('click', () => {
+  state.ceremonyBg = '';
+  save();
+  applyCeremonyBg();
+});
+
+// 行程快选条
+function renderDayScroll() {
+  const box = document.getElementById('dayScroll');
+  const cur = document.getElementById('e-date').value;
+  box.innerHTML = TRIP.days.map(x => `
+    <div class="day-chip ${x.d === cur ? 'active' : ''}" data-d="${x.d}">
+      <b>${x.n}</b>${x.d.slice(5).replace('-','/')}
+    </div>`).join('');
+  box.querySelectorAll('.day-chip').forEach(el => {
+    el.addEventListener('click', () => {
+      document.getElementById('e-date').value = el.dataset.d;
+      renderDayScroll();
+    });
+  });
+  const hit = TRIP.days.find(x => x.d === cur);
+  document.getElementById('dayRouteTip').textContent = hit ? `${hit.t} · ${hit.s}` : '非行程内日期';
+  const act = box.querySelector('.day-chip.active');
+  if (act) act.scrollIntoView({ block:'nearest', inline:'center' });
+}
+document.getElementById('e-date').addEventListener('change', () => {
+  state.lastDate = document.getElementById('e-date').value;
+  saveSoon();
+  renderDayScroll();
+});
+
+load();
+// 行程版本更新时同步行程基础信息（不影响已记账数据）
+if (state.tripVersion !== TRIP_VERSION) {
+  state.destination = TRIP.name;
+  state.startDate = TRIP.start;
+  state.endDate = TRIP.end;
+  state.tripVersion = TRIP_VERSION;
+  save();
+}
+applyCeremonyBg();
+bindHeader();
+const today = new Date().toISOString().slice(0,10);
+document.getElementById('e-date').value =
+  state.lastDate ? state.lastDate
+  : (TRIP.days.some(x => x.d === today) ? today : TRIP.days[0].d);
+renderDayScroll();
+const first = document.querySelector(`.cat-btn[data-cat="${state.currentCat}"]`);
+if (first) first.classList.add('active');
+renderAll();
+
+const impEl = document.getElementById('importFile');
+if (impEl) impEl.addEventListener('change', e => {
+  const f = e.target.files && e.target.files[0];
+  if (f) importData(f);
+  e.target.value = '';
+});
+window.addEventListener('beforeunload', save);
+document.addEventListener('visibilitychange', () => { if (document.hidden) save(); });
+if (!storageOK()) {
+  setSaveTip('当前浏览器禁用了本地存储，数据无法保存', true);
+} else if (state.savedAt) {
+  const t = new Date(state.savedAt);
+  setSaveTip(`已从本机恢复 · ${String(t.getMonth()+1).padStart(2,'0')}.${String(t.getDate()).padStart(2,'0')} ${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')}`);
+}
+
+window.addEventListener('resize', () => {
+  chartG && chartG.resize();
+  chartDay && chartDay.resize();
+});
+</script>
+</body>
+</html>
